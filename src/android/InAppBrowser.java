@@ -18,6 +18,12 @@
 */
 package org.apache.cordova.inappbrowser;
 
+
+//seman : 아임포트 
+import java.net.URISyntaxException; 
+import android.content.ActivityNotFoundException; 
+//seman : 아임포트 @
+
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.ComponentName;
@@ -1178,6 +1184,29 @@ public class InAppBrowser extends CordovaPlugin {
             this.waitForBeforeload = beforeload != null;
         }
 
+        //seman : 아임포트
+        /**
+         * @param scheme
+         * @return 해당 scheme에 대해 처리를 직접 하는지 여부
+         *
+         * 결제를 위한 3rd-party 앱이 아직 설치되어있지 않아 ActivityNotFoundException이 발생하는 경우 처리합니다.
+         * 여기서 handler되지않은 scheme에 대해서는 intent로부터 Package정보 추출이 가능하다면 다음에서 packageName으로 market이동합니다.
+         *
+         */
+        protected boolean handleNotFoundPaymentScheme(String scheme) {
+            //PG사에서 호출하는 url에 package정보가 없어 ActivityNotFoundException이 난 후 market 실행이 안되는 경우
+            if ( PaymentScheme.ISP.equalsIgnoreCase(scheme) ) {
+                cordova.getActivity().startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + PaymentScheme.PACKAGE_ISP)));
+                return true;
+            } else if ( PaymentScheme.BANKPAY.equalsIgnoreCase(scheme) ) {
+                cordova.getActivity().startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + PaymentScheme.PACKAGE_BANKPAY)));
+                return true;
+            }
+
+            return false;
+        }
+        //seman : 아임포트 @
+
         /**
          * Override the URL that should be loaded
          *
@@ -1256,7 +1285,37 @@ public class InAppBrowser extends CordovaPlugin {
                 }
             }
 
-            if (url.startsWith(WebView.SCHEME_TEL)) {
+            /* seman: 아임포트 */
+            if (!url.startsWith("http://") && !url.startsWith("https://") && !url.startsWith("javascript:")) {
+                Intent intent = null;
+
+                try {
+                    intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME); //IntentURI처리
+                    Uri uri = Uri.parse(intent.getDataString());
+
+                    cordova.getActivity().startActivity(new Intent(Intent.ACTION_VIEW, uri)); //해당되는 Activity 실행
+                    override = true; //이동안함 
+                } catch (URISyntaxException ex) {
+                    override = false; //이동함 
+                } catch (ActivityNotFoundException e) {
+                    if ( intent == null )   override = false; //이동함 
+
+                    if ( handleNotFoundPaymentScheme(intent.getScheme()) ){
+                        override = true; //이동안함 
+                    }
+
+                    String packageName = intent.getPackage();
+                    if (packageName != null) {
+                        cordova.getActivity().startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + packageName)));
+                        override = true; //이동안함 
+                    }else{
+                        override = false; //이동함 
+                    }
+
+                }
+            }
+            /* seamn : 아임포트 @ */
+            else if (url.startsWith(WebView.SCHEME_TEL)) {
                 try {
                     Intent intent = new Intent(Intent.ACTION_DIAL);
                     intent.setData(Uri.parse(url));
