@@ -248,8 +248,23 @@ public class InAppBrowser extends CordovaPlugin {
                     }
                     // SYSTEM
                     else if (SYSTEM.equals(target)) {
-                        LOG.d(LOG_TAG, "in system");
-                        result = openExternal(url);
+                        if(url.startsWith("intent://")) {
+                            try {
+                                Intent intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME);
+                                Intent existPackage = cordova.getActivity().getPackageManager().getLaunchIntentForPackage(cordova.getActivity().getPackageName());
+                                if (existPackage != null) {
+                                    cordova.getActivity().startActivity(intent);
+                                } else {
+                                    Intent marketIntent = new Intent(Intent.ACTION_VIEW);
+                                    marketIntent.setData(Uri.parse("market://details?id="+cordova.getActivity().getPackageName()));
+                                    cordova.getActivity().startActivity(marketIntent);
+                                }
+                            } catch (Exception e) {
+                                LOG.e(LOG_TAG, "Error with " + url + ": " + e.toString());
+                            }
+                        }else{
+                            result = openExternal(url);
+                        }
                     }
                     // BLANK - or anything else
                     else {
