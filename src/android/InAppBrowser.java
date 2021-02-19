@@ -251,12 +251,16 @@ public class InAppBrowser extends CordovaPlugin {
                         if(url.startsWith("intent://")) {
                             try {
                                 Intent intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME);
-                                Intent existPackage = cordova.getActivity().getPackageManager().getLaunchIntentForPackage(cordova.getActivity().getPackageName());
+                                String targetPackageName = url.split(";")[2].split("=")[1];
+                                Intent existPackage = cordova.getActivity().getPackageManager().getLaunchIntentForPackage(targetPackageName);
+
+
+                                System.out.println("testtest" + targetPackageName );
                                 if (existPackage != null) {
                                     cordova.getActivity().startActivity(intent);
                                 } else {
                                     Intent marketIntent = new Intent(Intent.ACTION_VIEW);
-                                    marketIntent.setData(Uri.parse("market://details?id="+cordova.getActivity().getPackageName()));
+                                    marketIntent.setData(Uri.parse("market://details?id="+targetPackageName));
                                     cordova.getActivity().startActivity(marketIntent);
                                 }
                             } catch (Exception e) {
@@ -265,6 +269,7 @@ public class InAppBrowser extends CordovaPlugin {
                         }else{
                             result = openExternal(url);
                         }
+
                     }
                     // BLANK - or anything else
                     else {
